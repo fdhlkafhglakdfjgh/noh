@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Model Viewer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        #viewer { width: 100vw; height: 100vh; }
+    </style>
+</head>
+<body>
+    <div id="viewer"></div>
+
+    <script>
+        let scene, camera, renderer, model, controls;
+
+        function init() {
+            const viewer = document.getElementById('viewer');
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            viewer.appendChild(renderer.domElement);
+
+            const light = new THREE.AmbientLight(0xffffff, 1);
+            scene.add(light);
+
+            camera.position.set(0, 1, 5);
+
+            // Инициализация OrbitControls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true; // Для более плавного взаимодействия
+            controls.dampingFactor = 0.05;
+            controls.screenSpacePanning = false;
+
+            // Загрузка фонового изображения
+            loadBackground('background.png');
+
+            // Загрузка 3D-модели
+            loadModel('model.glb');
+            animate();
+        }
+
+        function loadBackground(imagePath) {
+            const textureLoader = new THREE.TextureLoader();
+            textureLoader.load(imagePath, function (texture) {
+                scene.background = texture;
+            }, undefined, function (error) {
+                console.error('Ошибка загрузки фонового изображения:', error);
+                alert('Не удалось загрузить фон. Проверьте путь к файлу.');
+            });
+        }
+
+        function loadModel(modelPath) {
+            const loader = new THREE.GLTFLoader();
+            loader.load(modelPath, function (gltf) {
+                if (model) scene.remove(model);
+                model = gltf.scene;
+
+                const box = new THREE.Box3().setFromObject(model);
+                const center = box.getCenter(new THREE.Vector3());
+                model.position.sub(center);
+
+                const size = box.getSize(new THREE.Vector3());
+                const maxDim = Math.max(size.x, size.y, size.z);
+                model.scale.setScalar(2 / maxDim);
+
+                scene.add(model);
+            }, undefined, function (error) {
+                console.error('Ошибка загрузки модели:', error);
+                alert('Не удалось загрузить модель. Проверьте путь к файлу.');
+            });
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update(); // Обновление OrbitControls
+            renderer.render(scene, camera);
+        }
+
+        init();
+    </script>
+</body>
+</html>
